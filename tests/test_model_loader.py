@@ -1,5 +1,5 @@
 import pytest # type: ignore
-from model.model_loader import load_model
+from model_loader import load_model
 from src.utils import log_error, log_debug
 
 def test_load_model():

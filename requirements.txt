@@ -1,12 +1,7 @@
-gradio
-transformers
+# Core dependencies
 torch
-fastapi
-uvicorn
-pydantic
-pytest
-datasets
-sentencepiece
-accelerate
-openai-whisper
+transformers
+huggingface_hub
 
+# Chatbot UI
+gradio

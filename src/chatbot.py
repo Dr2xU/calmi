@@ -1,57 +1,45 @@
-import torch
-from model.Janus.janus.models import VLChatProcessor, MultiModalityCausalLM
-from model.Janus.janus.utils.io import load_pil_images
+from model_loader import load_model
 from src.utils import log_error, log_debug
-from model.model_loader import load_model
-from config import MODEL_NAME, PROMPT
+from config import PROMPT
 
-model, processor, tokenizer = load_model()
+try:
+    pipe = load_model()
+    log_debug("TinyLlama pipeline initialized in chatbot.py")
+except RuntimeError as e:
+    log_error(str(e))
+    pipe = None
 
-def generate_response(user_input, history, max_tokens=80, temperature=0.7, top_p=0.95, image=None):
-    """Generates a response considering chat history, system instructions, and optional images."""
+def generate_response(user_input, history, system_message, max_tokens=50, temperature=0.6, top_k=30, top_p=0.85):
+    """Generates a chatbot response using TinyLlama while ensuring quality and speed."""
     try:
-        if model is None:
-            return "Model failed to load."
+        if pipe is None:
+            raise RuntimeError("TinyLlama pipeline not initialized!")
 
-        # Create conversation format with system message
-        conversation = [
-            {"role": "<|System|>", "content": PROMPT},  # Inject system message
-        ] + list(history) + [
-            {"role": "<|User|>", "content": f"{user_input}"},
-            {"role": "<|Assistant|>", "content": ""},
-        ]
+        # ✅ Structure the chat format correctly
+        messages = [{"role": "system", "content": system_message}] + history + [{"role": "user", "content": user_input}]
 
-        # If there's an image, process it
-        if image:
-            conversation[-2]["content"] = f"<image_placeholder>\n{user_input}"
-            conversation[-2]["images"] = [image]
+        # ✅ Format the chat message
+        prompt = pipe.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 
-        # Load images if available
-        pil_images = load_pil_images(conversation) if image else None
-
-        # Prepare input
-        prepare_inputs = processor(conversations=conversation, images=pil_images, force_batchify=True).to(model.device)
-
-        # Get input embeddings
-        inputs_embeds = model.prepare_inputs_embeds(**prepare_inputs)
-
-        # Generate response
-        outputs = model.language_model.generate(
-            inputs_embeds=inputs_embeds,
-            attention_mask=prepare_inputs.attention_mask,
-            pad_token_id=tokenizer.eos_token_id,
-            bos_token_id=tokenizer.bos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
+        # ✅ Generate response with optimized parameters
+        outputs = pipe(
+            prompt,
             max_new_tokens=max_tokens,
-            do_sample=True,  # Enable sampling
+            do_sample=True,  # Faster and more stable responses
             temperature=temperature,
+            top_k=top_k,
             top_p=top_p,
-            use_cache=True,
+            pad_token_id=pipe.tokenizer.eos_token_id,  # Prevents excessive generation
         )
 
-        # Decode response
-        answer = tokenizer.decode(outputs[0].cpu().tolist(), skip_special_tokens=True)
-        return answer
+        # ✅ Extract ONLY the assistant's response
+        response = outputs[0]["generated_text"]
+
+        # ✅ Ensure model doesn't mirror user input
+        if "<|assistant|>" in response:
+            response = response.split("<|assistant|>")[-1].strip()  # Keep only model output
+
+        return response
     except Exception as e:
         log_error(f"Error generating response: {str(e)}")
         return "I'm sorry, but I encountered an error."

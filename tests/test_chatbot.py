@@ -1,6 +1,6 @@
 import pytest # type: ignore
 from src.chatbot import generate_response
-from model.model_loader import load_model
+from model_loader import load_model
 from src.utils import log_error, log_debug
 
 @pytest.fixture(scope="module")
