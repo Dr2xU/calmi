@@ -1,0 +1,12 @@
+gradio
+transformers
+torch
+fastapi
+uvicorn
+pydantic
+pytest
+datasets
+sentencepiece
+accelerate
+openai-whisper
+

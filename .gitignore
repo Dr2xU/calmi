@@ -1,0 +1,32 @@
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore virtual environment
+venv/
+*.pyc
+__pycache__/
+
+# Ignore model files (large & sensitive)
+model/
+checkpoints/
+*.ckpt
+*.safetensors
+*.bin
+*.h5
+
+# Ignore Hugging Face cache
+.cache/
+huggingface/
+*.pt
+
+# Ignore logs and temp files
+logs/
+*.log
+*.tmp
+
+# Ignore dataset files (optional)
+datasets/
+*.csv
+*.jsonl
+*.parquet
